@@ -4,6 +4,13 @@ const http = require('http');
 const base_url = 'http://geninhofloripa.ddns.net:82';
 const Alexa = require("alexa-sdk");
 
+// registra handlers e executa Lambda
+exports.handler = function(event, context, callback) {
+  var alexa = Alexa.handler(event, context);
+  alexa.registerHandlers(handlers);
+  alexa.execute();
+};
+
 /*
 const replies = {
     "LAUNCH1":"switchboard listening!",
@@ -30,10 +37,9 @@ const replies = {
     "BLOFF":"done",
     "GATEOP": "gate should be opening now",
     "GATECL": "gate should be closing now",
-    "GATE_CLOSED": "gate seems to be closed",
-    "GATE_OPEN": "gate seems to be open",
+    "GATE_CLOSED": "gate seems to be already closed",
+    "GATE_OPEN": "gate seems to be already open",
 };
-
 
 const pins = {
     "WORKLIGHTS"    :62,
@@ -108,9 +114,29 @@ var handlers = {
     "bathroomLightsOnIntent"  : callArduino.call(this, pins["LAVANDERIA"], "ON",  replies["BLON"]),
     "bathroomLightsOffIntent" : callArduino.call(this, pins["LAVANDERIA"], "OFF", replies["BLOFF"]),
 
-    "gateOpenIntent" : callArduino.call(this, pins["PORTAO"], "ON", replies["GATEOP"]),
+    "gateOpenIntent": function () {
+        isGateClosed(isClosed => {
+           if (isClosed) {
+               console.log("gateOpenIntent, is closed = true");
+              callArduino.call(this, pins["PORTAO"], "ON", replies["GATEOP"]).call(this);
+           } else {
+               console.log("gateOpenIntent, is closed = false");
+               this.response.speak(replies["GATE_OPEN"]);
+               this.emit(':responseReady');
+           }
+        });
+    },
 
-    "gateCloseIntent": callArduino.call(this, pins["PORTAO"], "ON", replies["GATECL"]),
+    "gateCloseIntent": function () {
+        isGateClosed(isClosed => {
+           if (isClosed) {
+                this.response.speak(replies["GATE_CLOSED"]);
+                this.emit(':responseReady');
+           } else {
+               callArduino.call(this, pins["PORTAO"], "ON", replies["GATECL"]).call(this);
+           }
+        });
+    },
 
     "gateStateIntent": function () {
         isGateClosed(isClosed => {
@@ -119,35 +145,24 @@ var handlers = {
         });
     },
 
-    
+    /* TODO: Create intent for items below:
+    gardenLightsOnIntent
+    gardenLightsOffIntent
 
+    bathroomLightsOnIntent
+    bathroomLightsOnIntent
 
+    shelvesLightOnIntent
+    shelvesLightOffIntent
 
-/* TODO: Create intent for items below:
-gardenLightsOnIntent
-gardenLightsOffIntent
+    jacuzziFillIntentOn
+    jacuzziFillIntentOff
 
-bathroomLightsOnIntent
-bathroomLightsOnIntent
+    jacuzziMassageOnIntent
+    jacuzziMassageOffIntent
 
-shelvesLightOnIntent
-shelvesLightOffIntent
+    jacuzziLightsOnIntent
+    jacuzziLightsOffIntent
+    */
 
-jacuzziFillIntentOn
-jacuzziFillIntentOff
-
-jacuzziMassageOnIntent
-jacuzziMassageOffIntent
-
-jacuzziLightsOnIntent
-jacuzziLightsOffIntent
-*/
-
-};
-
-// registra handlers e executa Lambda
-exports.handler = function(event, context, callback) {
-  var alexa = Alexa.handler(event, context);
-  alexa.registerHandlers(handlers);
-  alexa.execute();
 };
