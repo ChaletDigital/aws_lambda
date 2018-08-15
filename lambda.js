@@ -5,22 +5,21 @@ const base_url = 'http://geninhofloripa.ddns.net:82';
 const Alexa = require("alexa-sdk");
 
 const replies = {
-    "LAUNCH1":"switchboard listening!",
-    "LAUNCH2":"Hello, this is the switchboard. This is deployed on a aws lambda function. All systems are go!",
-    "WHOIS" :"Hey Marcelo, that is easy! Eugenio is the most special man on earth! You guys make a wonderful couple together",
-    "WLON" :"this one?",
-    "WLOFF":"ok",
-    "DLON" :"got it this time?",
-    "DLOFF":"ok",
-    "BLON" :"is that it?",
-    "BLOFF":"done",
-    "GT_CL": "the sensor shows gate is closed",
-    "GT_OP": "the sensor shows gate is open",
-    "GT_OP_ING": "gate should be opening now",
-    "GT_CL_ING": "gate should be closing now",
-    "GT_AL_CL": "sorry gate seems to be already closed",
-    "GT_AL_OP": "sorry gate seems to be already open",
-
+    launch1: "switchboard listening!",
+    launch2: "Hello, this is the switchboard. This is deployed on a aws lambda function. All systems are go!",
+    whoIs : "Hey Marcelo, that is easy! Eugenio is the most special man on earth! You guys make a wonderful couple together",
+    worklightsOn : "this one?",
+    worklightsOff: "ok",
+    deskOn : "desklights are on",
+    deskOff: "desklights are off",
+    bathLightsOff : "is that it?",
+    bathLightsOn: "done",
+    gateStateClose: "the sensor shows gate is closed",
+    gateStateOpen: "the sensor shows gate is open",
+    gateOpening: "gate should be opening now",
+    gateClosing: "gate should be closing now",
+    gateAlreadyClosed: "sorry gate seems to be already closed",
+    gateAlreadyOpen: "sorry gate seems to be already open",
 };
 
 const pins = {
@@ -42,19 +41,10 @@ const pins = {
     "PORTAO"        :24,
 };
 
-// registra handlers e executa Lambda.
-exports.handler = function(event, context, callback) {
-  var alexa = Alexa.handler(event, context);
-  alexa.registerHandlers(handlers);
-  alexa.execute();
-};
 
 function callArduino(pinNum, action, reply) {
-    var url = `${base_url}/PIN${pinNum} = ${action}`;
-    //url = base_url + '/PIN' + pinNum + '=' + action;
-    console.log(url);
+    const url = base_url + '/PIN' + pinNum + '=' + action;
     return function () {
-        console.log('getting');
         http.get(url, (error, response, body) => {
             this.response.speak(reply);
             this.emit(':responseReady');
@@ -90,47 +80,40 @@ var handlers = {
         this.emit(':responseReady');
     },
 
-    "CeilingLightsOnIntent" : callArduino.call(this, pins["WORKLIGHTS"], "ON",  replies["WLON"] ),
-    "CeilingLightsOffIntent": callArduino.call(this, pins["WORKLIGHTS"], "OFF", replies["WLOFF"] ),
+    "CeilingLightsOnIntent" : callArduino.call(this, pins["WORKLIGHTS"], "ON",  replies.worklightsOn ),
+    "CeilingLightsOffIntent": callArduino.call(this, pins["WORKLIGHTS"], "OFF", replies.worklightsOff ),
 
-    "DeskLightsOnIntent" : callArduino.call(this, pins["DESK"], "ON",  replies["DLON"] ),
-    "DeskLightsOffIntent": callArduino.call(this, pins["DESK"], "OFF", replies["DLOFF"] ),
+    "DeskLightsOnIntent" : callArduino.call(this, pins["DESK"], "ON",  replies.deskOn),
+    "DeskLightsOffIntent": callArduino.call(this, pins["DESK"], "OFF", replies.deskOff ),
 
-    "bathroomLightsOnIntent"  : callArduino.call(this, pins["LAVANDERIA"], "ON",  replies["BLON"]),
-    "bathroomLightsOffIntent" : callArduino.call(this, pins["LAVANDERIA"], "OFF", replies["BLOFF"]),
+    "bathroomLightsOnIntent"  : callArduino.call(this, pins["LAVANDERIA"], "ON",  replies.bathLightsOn),
+    "bathroomLightsOffIntent" : callArduino.call(this, pins["LAVANDERIA"], "OFF", replies.bathLightsOff),
 
-    // QUER ABRIR
     "gateOpenIntent": function () {
         isGateClosed(isClosed => {
-            // esta fechado
             if (isClosed) {
-                callArduino.call(this, pins["PORTAO"], "ON", replies["GT_OP_ING"]).call(this);
+                callArduino.call(this, pins["PORTAO"], "ON", replies.gateOpening).call(this);
             } else {
-            // estava aberto
-                this.response.speak(replies["GT_AL_OP"]);
+                this.response.speak(replies.gateAlreadyOpen);
                 this.emit(':responseReady');
            }
         });
     },
 
-    //QUER FECHAR
     "gateCloseIntent": function () {
         isGateClosed(isClosed => {
-            // mas ja esta fechado
             if (isClosed) {
-                this.response.speak(replies["GT_AL_CL"]);
+                this.response.speak(replies.gateAlreadyClosed);
                 this.emit(':responseReady');
             } else {
-                // manda abrir
-                callArduino.call(this, pins["PORTAO"], "ON", replies["GT_OP_ING"]).call(this);
+                callArduino.call(this, pins["PORTAO"], "ON", replies.gateOpening).call(this);
             }
         });
     },
 
-    // CHECAR ESTADO
     "gateStateIntent": function () {
         isGateClosed(isClosed => {
-               this.response.speak(isClosed ? replies["GT_CL"] : replies["GT_OP"]);
+               this.response.speak(isClosed ? replies.gateStateClose : replies.gateStateOpen);
                this.emit(':responseReady');
         });
     },
@@ -155,4 +138,11 @@ var handlers = {
     jacuzziLightsOffIntent
     */
 
+};
+
+// registra handlers e executa Lambda.
+exports.handler = function(event, context, callback) {
+  var alexa = Alexa.handler(event, context);
+  alexa.registerHandlers(handlers);
+  alexa.execute();
 };
